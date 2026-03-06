@@ -1,34 +1,52 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../store/Api";
 
+// ✅ LOGIN
 export const login = createAsyncThunk(
-  "login",
+  "auth/login",
   async (userInput, { rejectWithValue }) => {
     try {
-      const response = await api.post("/logins/create-login", userInput);
-      if (response?.data?.status_code === 200) {
+      const response = await api.post("/logins/create-login", userInput); // ✅ fixed
+
+      if (response?.data?.token) {
         return response.data;
-      } else {
-        return rejectWithValue(response?.data || "Login failed");
       }
+
+      return rejectWithValue(
+        response?.data?.message || "Login failed - no token received"
+      );
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message || "Something went wrong");
+      return rejectWithValue(
+        error.response?.data?.message ||
+        error.response?.data ||
+        error.message ||
+        "Something went wrong. Please try again."
+      );
     }
   }
 );
 
+// ✅ REGISTER
 export const registerUser = createAsyncThunk(
-  "register",
+  "auth/register",
   async (userInput, { rejectWithValue }) => {
     try {
-      const response = await api.post("/users/register", userInput);
-      if (response?.data?.status_code === 200) {
+      const response = await api.post("/registers/create-register", userInput); // ✅ fixed
+
+      if (response?.data) {
         return response.data;
-      } else {
-        return rejectWithValue(response?.data || "Registration failed");
       }
+
+      return rejectWithValue(
+        response?.data?.message || "Registration failed"
+      );
     } catch (error) {
-      return rejectWithValue(error.response?.data || error.message || "Something went wrong");
+      return rejectWithValue(
+        error.response?.data?.message ||
+        error.response?.data ||
+        error.message ||
+        "Something went wrong. Please try again."
+      );
     }
   }
 );
@@ -36,26 +54,51 @@ export const registerUser = createAsyncThunk(
 const initialState = {
   loading: false,
   error: null,
+  user: null,
+  token: null,
 };
 
 const AuthSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    logout: (state) => {
+      state.loading = false;
+      state.error = null;
+      state.user = null;
+      state.token = null;
+      sessionStorage.removeItem("energy_token");
+    },
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(login.pending, (state) => { state.loading = true; })
+      // ── LOGIN ──
+      .addCase(login.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(login.fulfilled, (state, { payload }) => {
         state.loading = false;
-        sessionStorage.setItem("energy_token", JSON.stringify({ token: payload?.token }));
+        state.error = null;
+        state.token = payload.token;
+        state.user = payload.user;
+       sessionStorage.setItem("energy_token", JSON.stringify(payload));
+        console.log("Login successful - token stored");
       })
       .addCase(login.rejected, (state, { payload }) => {
         state.loading = false;
         state.error = payload;
       })
 
-      .addCase(registerUser.pending, (state) => { state.loading = true; })
-      .addCase(registerUser.fulfilled, (state) => { state.loading = false; })
+      // ── REGISTER ──
+      .addCase(registerUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+      })
       .addCase(registerUser.rejected, (state, { payload }) => {
         state.loading = false;
         state.error = payload;
@@ -63,4 +106,5 @@ const AuthSlice = createSlice({
   },
 });
 
+export const { logout } = AuthSlice.actions;
 export default AuthSlice.reducer;

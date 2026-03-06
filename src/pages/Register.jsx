@@ -6,7 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 const Register = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.auth); // ✅ added error
 
   const [formData, setFormData] = useState({
     name: "",
@@ -15,22 +15,32 @@ const Register = () => {
     confirmPassword: "",
   });
 
+  const [passwordError, setPasswordError] = useState(""); // ✅ local password mismatch error
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setPasswordError("Passwords do not match"); // ✅ show inline instead of alert
       return;
     }
-    const result = await dispatch(registerUser({
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-    }));
-    if (result.payload?.status_code === 200) {
+
+    setPasswordError("");
+
+    const result = await dispatch(
+      registerUser({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      })
+    );
+
+    // ✅ navigate on success
+    if (registerUser.fulfilled.match(result)) {
       navigate("/login");
     }
   };
@@ -39,7 +49,7 @@ const Register = () => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-top">
-          <div className="auth-icon">📋</div>
+          <div className="auth-icon">⚡</div>
           <h2>Create Account</h2>
           <p>Start saving on your energy bills today</p>
         </div>
@@ -93,6 +103,16 @@ const Register = () => {
             />
           </div>
 
+          {/* ✅ Show password mismatch error */}
+          {passwordError && (
+            <div className="text-red error-msg">{passwordError}</div>
+          )}
+
+          {/* ✅ Show server/redux error */}
+          {error && (
+            <div className="text-red error-msg">{error}</div>
+          )}
+
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? "Creating Account..." : "Register"}
           </button>
@@ -100,7 +120,9 @@ const Register = () => {
 
         <p className="auth-footer">
           Already have an account?{" "}
-          <Link to="/login" className="auth-link">Login</Link>
+          <Link to="/login" className="auth-link">
+            Login
+          </Link>
         </p>
       </div>
     </div>
