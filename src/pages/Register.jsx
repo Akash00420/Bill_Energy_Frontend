@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../Reducer/AuthSlice";
 import { useNavigate, Link } from "react-router-dom";
-import Loader from "./Loader";
 
 const Register = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
   const { loading } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
@@ -18,41 +16,37 @@ const Register = () => {
   });
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match");
       return;
     }
-
     const result = await dispatch(registerUser({
       name: formData.name,
       email: formData.email,
       password: formData.password,
     }));
-
-    if (result.payload?.success) {
+    if (result.payload?.status_code === 200) {
       navigate("/login");
     }
   };
 
   return (
     <div className="auth-container">
-      <div className="card">
-        <h2>Create Account</h2>
-
-        {loading && <Loader />}
+      <div className="auth-card">
+        <div className="auth-top">
+          <div className="auth-icon">📋</div>
+          <h2>Create Account</h2>
+          <p>Start saving on your energy bills today</p>
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Name</label>
+            <label>Full Name</label>
             <input
               type="text"
               name="name"
@@ -64,11 +58,11 @@ const Register = () => {
           </div>
 
           <div className="form-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input
               type="email"
               name="email"
-              placeholder="Enter your email"
+              placeholder="you@example.com"
               value={formData.email}
               onChange={handleChange}
               required
@@ -80,7 +74,7 @@ const Register = () => {
             <input
               type="password"
               name="password"
-              placeholder="Enter password"
+              placeholder="••••••••"
               value={formData.password}
               onChange={handleChange}
               required
@@ -92,20 +86,21 @@ const Register = () => {
             <input
               type="password"
               name="confirmPassword"
-              placeholder="Confirm password"
+              placeholder="••••••••"
               value={formData.confirmPassword}
               onChange={handleChange}
               required
             />
           </div>
 
-          <button type="submit" className="btn-primary">
-            Register
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Creating Account..." : "Register"}
           </button>
         </form>
 
-        <p style={{ marginTop: "15px" }}>
-          Already have an account? <Link to="/login">Login</Link>
+        <p className="auth-footer">
+          Already have an account?{" "}
+          <Link to="/login" className="auth-link">Login</Link>
         </p>
       </div>
     </div>

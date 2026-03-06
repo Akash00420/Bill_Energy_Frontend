@@ -8,3 +8,4 @@ export const store = configureStore({
     bill: billReducer,
   },
 });
+export default store;

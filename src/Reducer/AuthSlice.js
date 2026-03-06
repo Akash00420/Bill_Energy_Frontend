@@ -1,67 +1,66 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import API from "../store/Api";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import api from "../store/Api";
 
-export const loginUser = createAsyncThunk(
-  "auth/login",
-  async (data, { rejectWithValue }) => {
+export const login = createAsyncThunk(
+  "login",
+  async (userInput, { rejectWithValue }) => {
     try {
-      const res = await API.post("/auth/login", data);
-      localStorage.setItem("token", res.data.token);
-      return res.data;
-    } catch (err) {
-      return rejectWithValue(err.response.data);
+      const response = await api.post("/logins/create-login", userInput);
+      if (response?.data?.status_code === 200) {
+        return response.data;
+      } else {
+        return rejectWithValue(response?.data || "Login failed");
+      }
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message || "Something went wrong");
     }
   }
 );
 
-// ✅ Added registerUser thunk
 export const registerUser = createAsyncThunk(
-  "auth/register",
-  async (data, { rejectWithValue }) => {
+  "register",
+  async (userInput, { rejectWithValue }) => {
     try {
-      const res = await API.post("/auth/register", data);
-      return res.data;
-    } catch (err) {
-      return rejectWithValue(err.response.data);
+      const response = await api.post("/users/register", userInput);
+      if (response?.data?.status_code === 200) {
+        return response.data;
+      } else {
+        return rejectWithValue(response?.data || "Registration failed");
+      }
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message || "Something went wrong");
     }
   }
 );
 
-const authSlice = createSlice({
+const initialState = {
+  loading: false,
+  error: null,
+};
+
+const AuthSlice = createSlice({
   name: "auth",
-  initialState: {
-    user: null,
-    loading: false,
-    error: null,
-  },
+  initialState,
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      // Login cases
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
+      .addCase(login.pending, (state) => { state.loading = true; })
+      .addCase(login.fulfilled, (state, { payload }) => {
         state.loading = false;
-        state.user = action.payload.user;
+        sessionStorage.setItem("energy_token", JSON.stringify({ token: payload?.token }));
       })
-      .addCase(loginUser.rejected, (state, action) => {
+      .addCase(login.rejected, (state, { payload }) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = payload;
       })
 
-      // ✅ Register cases
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
+      .addCase(registerUser.pending, (state) => { state.loading = true; })
+      .addCase(registerUser.fulfilled, (state) => { state.loading = false; })
+      .addCase(registerUser.rejected, (state, { payload }) => {
         state.loading = false;
-        // Don't set user here — redirect to login after register
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+        state.error = payload;
       });
   },
 });
 
-export default authSlice.reducer;
+export default AuthSlice.reducer;
