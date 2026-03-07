@@ -6,7 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 const Register = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth); // ✅ added error
+  const { loading, error } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -15,7 +15,7 @@ const Register = () => {
     confirmPassword: "",
   });
 
-  const [passwordError, setPasswordError] = useState(""); // ✅ local password mismatch error
+  const [passwordError, setPasswordError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,9 +23,10 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return; // ✅ prevent multiple submissions
 
     if (formData.password !== formData.confirmPassword) {
-      setPasswordError("Passwords do not match"); // ✅ show inline instead of alert
+      setPasswordError("Passwords do not match");
       return;
     }
 
@@ -36,14 +37,17 @@ const Register = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        confirm_password: formData.confirmPassword, // ✅ backend expects this key
       })
     );
 
-    // ✅ navigate on success
     if (registerUser.fulfilled.match(result)) {
       navigate("/login");
     }
   };
+
+  const errorMessage = error?.msg || error?.message ||
+    (typeof error === "string" ? error : null);
 
   return (
     <div className="auth-container">
@@ -103,26 +107,26 @@ const Register = () => {
             />
           </div>
 
-          {/* ✅ Show password mismatch error */}
           {passwordError && (
             <div className="text-red error-msg">{passwordError}</div>
           )}
 
-          {/* ✅ Show server/redux error */}
-          {error && (
-            <div className="text-red error-msg">{error}</div>
+          {errorMessage && (
+            <div className="text-red error-msg">{errorMessage}</div>
           )}
 
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+          >
             {loading ? "Creating Account..." : "Register"}
           </button>
         </form>
 
         <p className="auth-footer">
           Already have an account?{" "}
-          <Link to="/login" className="auth-link">
-            Login
-          </Link>
+          <Link to="/login" className="auth-link">Login</Link>
         </p>
       </div>
     </div>

@@ -6,19 +6,17 @@ export const login = createAsyncThunk(
   "auth/login",
   async (userInput, { rejectWithValue }) => {
     try {
-      const response = await api.post("/logins/create-login", userInput); // ✅ fixed
-
+      const response = await api.post("/logins/create-login", userInput);
       if (response?.data?.token) {
         return response.data;
       }
-
       return rejectWithValue(
         response?.data?.message || "Login failed - no token received"
       );
     } catch (error) {
       return rejectWithValue(
+        error.response?.data?.msg ||
         error.response?.data?.message ||
-        error.response?.data ||
         error.message ||
         "Something went wrong. Please try again."
       );
@@ -31,23 +29,31 @@ export const registerUser = createAsyncThunk(
   "auth/register",
   async (userInput, { rejectWithValue }) => {
     try {
-      const response = await api.post("/registers/create-register", userInput); // ✅ fixed
-
+      const response = await api.post("/registers/create-register", userInput);
       if (response?.data) {
         return response.data;
       }
-
       return rejectWithValue(
         response?.data?.message || "Registration failed"
       );
     } catch (error) {
+      // ✅ extract string from { msg, status_code } shape
       return rejectWithValue(
+        error.response?.data?.msg ||
         error.response?.data?.message ||
-        error.response?.data ||
         error.message ||
         "Something went wrong. Please try again."
       );
     }
+  }
+);
+
+// ✅ LOGOUT THUNK
+export const logoutUser = createAsyncThunk(
+  "auth/logout",
+  async (_, { dispatch }) => {
+    sessionStorage.removeItem("energy_token");
+    dispatch(logout());
   }
 );
 
@@ -72,7 +78,8 @@ const AuthSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // ── LOGIN ──
+
+      // ── LOGIN ────────────────────────────────────
       .addCase(login.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -82,15 +89,19 @@ const AuthSlice = createSlice({
         state.error = null;
         state.token = payload.token;
         state.user = payload.user;
-       sessionStorage.setItem("energy_token", JSON.stringify(payload));
-        console.log("Login successful - token stored");
+        sessionStorage.setItem("energy_token", JSON.stringify({
+          token: payload.token,
+          user: payload.user,
+        }));
       })
       .addCase(login.rejected, (state, { payload }) => {
         state.loading = false;
-        state.error = payload;
+        // ✅ always store as string
+        state.error = payload?.msg || payload?.message ||
+          (typeof payload === "string" ? payload : "Login failed");
       })
 
-      // ── REGISTER ──
+      // ── REGISTER ─────────────────────────────────
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -101,7 +112,17 @@ const AuthSlice = createSlice({
       })
       .addCase(registerUser.rejected, (state, { payload }) => {
         state.loading = false;
-        state.error = payload;
+        // ✅ always store as string
+        state.error = payload?.msg || payload?.message ||
+          (typeof payload === "string" ? payload : "Registration failed");
+      })
+
+      // ── LOGOUT ───────────────────────────────────
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+        state.user = null;
+        state.token = null;
       });
   },
 });
